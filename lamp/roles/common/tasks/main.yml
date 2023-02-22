@@ -1,0 +1,21 @@
+
+- name: Einschränkung von dmesg für Benutzer
+  lineinfile:
+    dest: /etc/sudoers
+    regexp: "^%users ALL=(ALL) NOPASSWD: /bin/ps$"
+    line: "%users ALL=(ALL) NOPASSWD: /bin/ps, !/bin/dmesg"
+    validate: "visudo -cf %s"
+
+- name: "Sicherstellen, dass der Benutzer nur seine eigenen Prozesse sehen kann"
+  blockinfile:
+    path: /etc/profile.d/restrict_ps.sh
+    block: |
+      alias ps='ps -u $USER'
+  register: restrict_ps
+
+- name: "Shell-Neustart für Änderungen anwenden"
+  shell: "exec su - {{ ansible_user }}"
+
+  when: restrict_ps.changed
+
+
